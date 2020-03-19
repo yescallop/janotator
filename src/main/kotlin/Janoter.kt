@@ -1,7 +1,7 @@
 import org.w3c.xhr.XMLHttpRequest
 
 private val REGEX_SYLLABLE =
-    Regex("n(?![aiueoāīūēō])|[wrtypsdfghjkzcvbnm~]*[aiueoāīūēō]|\\b \\b| ?\\u0304")
+    Regex("n(?![yaiueoāīūēō])|[wrtypsdfghjkzcvbnm~]*[aiueoāīūēō]|\\b \\b| ?\\u0304")
 private const val HIRAGANA_START = 0x3041
 private const val HIRAGANA_END = 0x3094
 private const val KATAKANA_START = 0x30A1
@@ -124,6 +124,8 @@ private fun romajiSyllableToKana(s: String, sb: StringBuilder) {
             sb.append('ふ')
             sb.append(ROMAJI_TO_KANA["~" + s[1]])
         }
+        s == "ti" -> sb.append("てぃ")
+        s == "di" -> sb.append("でぃ")
         else -> throw IllegalArgumentException("No such kana: $s")
     } else {
         sb.append(kana)
@@ -134,24 +136,30 @@ private fun jaToRegex(s: String, indexes: MutableList<Int>): String {
     var res = ""
     val len = s.length
     var last = 0
-    var flag = -1
+    var flag = -1 // -2 for dummy, -1 for kana, >=0 for kanji
     s.forEachCodePoint { i, clen, c ->
         val vaLine = isInVaLine(c)
         val kata = vaLine || isKatakana(c)
         val hira = isHiragana(c)
         if (!kata && !hira && c != 'ー'.toInt()) {
             if (!isCodePointIdeographic(c)) {
-                if (flag == 0) indexes.add(i)
-                if (flag != 1) {
-                    res += "/ ?"
-                    flag = 1
+                if (flag >= 0) {
+                    res += groupForFlag(flag)
+                    indexes.add(i)
                 }
-            } else if (flag != 0) {
-                res += "( .+?|.+? |.+?)"
-                flag = 0
+                if (flag != -2) {
+                    res += "/ ?"
+                    flag = -2
+                }
+            } else {
+                if (flag < 0) flag = 0
+                if (c != '・'.toInt()) flag++
             }
         } else {
-            if (flag == 0) indexes.add(i)
+            if (flag >= 0) {
+                res += groupForFlag(flag)
+                indexes.add(i)
+            }
             val ch = c.toChar()
             // Without toString(), Char would be unexpectedly casted to Int
             res += when {
@@ -186,8 +194,17 @@ private fun jaToRegex(s: String, indexes: MutableList<Int>): String {
             res += " ?"
         }
     }
-    if (flag == 0) indexes.add(len)
+    if (flag >= 0) {
+        res += groupForFlag(flag)
+        indexes.add(len)
+    }
     return res
+}
+
+private fun groupForFlag(flag: Int): String {
+    if (flag == 0) return ""
+    val max = flag * 6
+    return "(.{$flag,$max}? |.{$flag,$max}?)"
 }
 
 private fun isHiragana(c: Int): Boolean {
@@ -268,7 +285,13 @@ fun note(s: String, onReadyAction: (List<NotedLine>?) -> Unit): XMLHttpRequest? 
             val kana = romajiToKana(romaji)
             val indexes = ArrayList<Int>()
             val regex = jaToRegex(line, indexes)
-            val kanaNoted = noteKana(line, kana, regex, indexes)
+            val kanaNoted: String?
+            try {
+                kanaNoted = noteKana(line, kana, regex, indexes)
+            } catch (_: Throwable) {
+                fail("Stack overflow due to massive line, consider splitting it", onReadyAction)
+                return@transliterate
+            }
             res.add(NotedLine(line, romaji, kanaNoted))
         }
         onReadyAction(res)

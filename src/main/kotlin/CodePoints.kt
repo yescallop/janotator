@@ -27,5 +27,7 @@ fun isCodePointIdeographic(c: Int): Boolean {
 
 fun isCodePointProhibited(c: Int): Boolean {
     val ch = c.toChar()
-    return ch in 'A'..'Z' || ch in 'a'..'z' || " 　/\\／＼ĀĪŪĒŌāīūēō\u0304".contains(ch)
+    return c <= 0x20 || ch in 'A'..'Z' || ch in 'a'..'z' ||
+            ch in 'Ａ'..'Ｚ' || ch in 'ａ'..'ｚ' ||
+            "　/\\／＼ĀĪŪĒŌāīūēō\u0304".contains(ch)
 }
