@@ -33,7 +33,7 @@ private val ROMAJI_TO_KANA =
         }
     }
 
-private fun noteKana(line: String, kana: String, regex: String, indexes: List<Int>): String? {
+private fun notateKana(line: String, kana: String, regex: String, indexes: List<Int>): String? {
     val size = indexes.size
     if (size == 0) return line
 
@@ -261,7 +261,7 @@ private fun mergeLine(s: String): String {
     return res ?: s
 }
 
-fun note(s: String, onReadyAction: (List<NotedLine>?) -> Unit): XMLHttpRequest? {
+fun notate(s: String, onReadyAction: (List<NotatedLine>?) -> Unit): XMLHttpRequest? {
     val lines = ArrayList<String>()
     val merged = merge(s, lines)
     if (merged.isEmpty()) {
@@ -278,28 +278,28 @@ fun note(s: String, onReadyAction: (List<NotedLine>?) -> Unit): XMLHttpRequest? 
             return@transliterate
         }
         val resLines = it.split('\\')
-        val res = ArrayList<NotedLine>()
+        val res = ArrayList<NotatedLine>()
         for (i in lines.indices) {
             val line = lines[i]
             val romaji = resLines[i].trim(' ', '-').toLowerCase()
             val kana = romajiToKana(romaji)
             val indexes = ArrayList<Int>()
             val regex = jaToRegex(line, indexes)
-            val kanaNoted: String?
+            val kanaNotated: String?
             try {
-                kanaNoted = noteKana(line, kana, regex, indexes)
+                kanaNotated = notateKana(line, kana, regex, indexes)
             } catch (_: Throwable) {
                 fail("Stack overflow due to massive line, consider splitting it", onReadyAction)
                 return@transliterate
             }
-            res.add(NotedLine(line, romaji, kanaNoted))
+            res.add(NotatedLine(line, romaji, kanaNotated))
         }
         onReadyAction(res)
     }
 }
 
-class NotedLine(
+class NotatedLine(
     var origin: String,
     var romaji: String,
-    var kanaNoted: String?
+    var kanaNotated: String?
 )

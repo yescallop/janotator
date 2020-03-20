@@ -16,6 +16,6 @@ dependencies {
 
 kotlin.target.browser {
     dceTask {
-        keep "janoter.buttonClicked"
+        keep "janotator.buttonClicked"
     }
 }
