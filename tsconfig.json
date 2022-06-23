@@ -1,0 +1,12 @@
+{
+  "include": [
+    "src/**/*"
+  ],
+  "compilerOptions": {
+    "allowJs": true,
+    "target": "ES2015",
+    "strict": true,
+    "outFile": "janotator.js",
+    "removeComments": true,
+  },
+}
