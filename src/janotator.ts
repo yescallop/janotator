@@ -275,22 +275,16 @@ function mergeLine(s: string): string {
     }
 }
 
-function notate(s: string, onReady: (lines: NotatedLine[] | null) => void): XMLHttpRequest | null {
+async function notate(text: string, signal: AbortSignal): Promise<NotatedLine[]> {
     let lines: string[] = [];
-    let merged = merge(s, lines);
+    let merged = merge(text, lines);
     if (merged.length == 0) {
-        fail("Empty text", onReady);
-        return null;
+        throw "Empty text";
     }
     if (merged.length > 5000) {
-        fail("Merged text length > 5000", onReady);
-        return null;
+        throw "Merged text length > 5000";
     }
-    return transliterate(merged, (res) => {
-        if (res == null) {
-            onReady(null);
-            return;
-        }
+    return transliterate(merged, signal).then(res => {
         let resLines = res.split('\\');
         let notatedLines = [];
         for (let i = 0; i < lines.length; i++) {
@@ -303,12 +297,11 @@ function notate(s: string, onReady: (lines: NotatedLine[] | null) => void): XMLH
             try {
                 kanaNotated = notateKana(line, kana, regex, indexes);
             } catch (_) {
-                fail("Stack overflow due to massive line, consider splitting it", onReady);
-                return;
+                throw "Stack overflow due to massive line, consider splitting it";
             }
             notatedLines.push(new NotatedLine(line, romaji, kanaNotated));
         }
-        onReady(notatedLines);
+        return notatedLines;
     });
 }
 
