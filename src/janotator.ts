@@ -138,8 +138,8 @@ function jaToRegex(s: string, indexes: number[]): string {
         let hira = isHiragana(c);
         if (!kata && !hira && cs != 'ー') {
             if (!isCodePointIdeographic(c)) {
-                if (flag >= 0) {
-                    out += groupForFlag(flag);
+                if (flag > 0) {
+                    out += kanjiGroup(flag);
                     indexes.push(i);
                 }
                 if (flag != -2) {
@@ -151,8 +151,8 @@ function jaToRegex(s: string, indexes: number[]): string {
                 if (cs != '・') flag++;
             }
         } else {
-            if (flag >= 0) {
-                out += groupForFlag(flag);
+            if (flag > 0) {
+                out += kanjiGroup(flag);
                 indexes.push(i);
             }
             if (kata) {
@@ -203,17 +203,16 @@ function jaToRegex(s: string, indexes: number[]): string {
             out += " ?";
         }
     });
-    if (flag >= 0) {
-        out += groupForFlag(flag);
+    if (flag > 0) {
+        out += kanjiGroup(flag);
         indexes.push(len);
     }
     return out + "$";
 }
 
-function groupForFlag(flag: number): string {
-    if (flag == 0) return "";
-    let max = flag * 6;
-    return `(.{${flag},${max}}? |.{${flag},${max}}?)`;
+function kanjiGroup(count: number): string {
+    let max = count * 6;
+    return `(.{${count},${max}}? |.{${count},${max}}?)`;
 }
 
 function isHiragana(c: number): boolean {
@@ -296,7 +295,7 @@ async function notate(text: string, signal: AbortSignal): Promise<NotatedLine[]>
             let kanaNotated: string | null;
             try {
                 kanaNotated = notateKana(line, kana, regex, indexes);
-            } catch (_) {
+            } catch (e) {
                 throw "Stack overflow due to massive line, consider splitting it";
             }
             notatedLines.push(new NotatedLine(line, romaji, kanaNotated));
